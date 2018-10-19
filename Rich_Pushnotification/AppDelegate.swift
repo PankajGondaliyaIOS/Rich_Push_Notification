@@ -2,45 +2,68 @@
 //  AppDelegate.swift
 //  Rich_Pushnotification
 //
-//  Created by Neil Patel on 10/19/18.
+//  Created by Pankaj Gondaliya on 10/19/18.
 //  Copyright © 2018 Pankaj Gondaliya. All rights reserved.
 //
 
 import UIKit
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
-
+    
     var window: UIWindow?
-
-
+    let notificationDelegate = NotificationHandler()
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        configureNotification()
         return true
     }
-
-    func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+    
+    //MARK: Notification Methods
+    func configureNotification() {
+        if #available(iOS 10.0, *) {
+            let center = UNUserNotificationCenter.current()
+            center.requestAuthorization(options:[.badge, .alert, .sound]){ (granted, error) in }
+            center.delegate = notificationDelegate
+            center.setNotificationCategories(Set([createIntrestedNotIntrestedCategory(), createMessageCategory()]))
+        } else {
+            UIApplication.shared.registerUserNotificationSettings(UIUserNotificationSettings(types: [.badge, .sound, .alert], categories: nil))
+        }
+        UIApplication.shared.registerForRemoteNotifications()
     }
-
-    func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let deviceTokenString = deviceToken.reduce("", {$0 + String(format: "%02X", $1)})
+        print("APNs device token: \(deviceTokenString)")
     }
-
-    func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+    
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("APNs registration failed: \(error)")
     }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+    
+    //MARK: Notification Categories
+    func createIntrestedNotIntrestedCategory()->UNNotificationCategory {
+        let intrestedAction = UNNotificationAction(identifier: "UserChoiceIdentifierIntrested", title: "Intrested", options: [])
+        let notIntrestedAction = UNNotificationAction(identifier: "UserChoiceIdentifierIntrested", title: "NotIntrested", options: [])
+        let intrestedNotIntrestedCategory = UNNotificationCategory(identifier: NotificationCategory.InterestedNotInterested, actions: [intrestedAction, notIntrestedAction], intentIdentifiers: [], options: [])
+        return intrestedNotIntrestedCategory
     }
-
-    func applicationWillTerminate(_ application: UIApplication) {
-        // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    
+    func createMessageCategory()-> UNNotificationCategory {
+        let replyAction = UNTextInputNotificationAction(identifier: NotificationCategory.Message, title: "Reply", options: [], textInputButtonTitle: "Send", textInputPlaceholder: "Type your message")
+        let categoryReplyAction = UNNotificationCategory(identifier: NotificationCategory.Message, actions: [replyAction], intentIdentifiers: [], options: [])
+        return categoryReplyAction
     }
-
-
+    
+    /*
+     func createAgreeDisagreeCategory()-> UNNotificationCategory {
+     let agreedAction = UNNotificationAction(identifier: "UserChoiceIdentifierAgree", title: NSLocalizedString("Agree", comment: "Click to proceed"), options: UNNotificationActionOptions.foreground)
+     let disAgreeAction = UNNotificationAction(identifier: "UserChoiceIdentifierDisAgree", title: NSLocalizedString("NotIntrested", comment: "Click to close"), options: UNNotificationActionOptions.foreground)
+     let intrestedNotIntrestedCategory = UNNotificationCategory(identifier: "TypeAgreeDisagree", actions: [agreedAction, disAgreeAction], intentIdentifiers: [], options: [])
+     return intrestedNotIntrestedCategory
+     }
+     */
+    
 }
 
